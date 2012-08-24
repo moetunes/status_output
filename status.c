@@ -34,6 +34,7 @@ static void get_wifi_strength();
 static void get_batt_perc();
 static void get_temps();
 static void get_day_date();
+static void get_uptime();
 
 static Display *dis;
 
@@ -45,6 +46,7 @@ static char batt_ret[20];
 static char temps_ret[10];
 static char time_ret[25];
 static char daydate_ret[7];
+static char uptime_ret[15];
 
 #include "fuzzy-time.c"
 
@@ -226,6 +228,20 @@ void get_day_date() {
     return;
 }
 
+void get_uptime() {
+    double up, idle;
+    unsigned int days, hours, mins, nup;
+
+    uptime(&up, &idle);
+    nup = up;
+    days = nup/86400;
+    hours = (nup%86400)/3600;
+    mins = (nup%3600)/60;
+    if(days > 0) sprintf(uptime_ret, "%dd %dh %dm %ds", days,hours,mins,nup%60);
+    else if(hours > 0) sprintf(uptime_ret, "%dh %dm %ds", hours,mins,nup%60);
+    else if(mins > 0) sprintf(uptime_ret, "%dm %ds", mins,nup%60);
+}
+
 void
 setstatus(char *str) {
     if(OUT_TO_CONSOLE == 0) {
@@ -261,10 +277,11 @@ main(void) {
         else get_wifi_strength();
         get_cpu_perc();
         get_cpu_freq();
+        get_uptime();
         //mktimes();
 
-        sprintf(status, "&4ð&1 %s &4¤&3 %s &4±&1 %s &4Î&1 %s &4µ&1 %s&2 %s &4É&5 %s &4Ï&5 %s &4ê ",
-             batt_ret, wifi_ret, temps_ret, mem_ret, freq_ret, cpu_ret, daydate_ret, time_ret);
+        sprintf(status, "&4ð&1 %s &4¤&3 %s &4±&1 %s &4Î&1 %s &4µ&1 %s&2 %s &4µ&1 %s &4É&5 %s &4Ï&5 %s &4ê ",
+             batt_ret, wifi_ret, temps_ret, mem_ret, freq_ret, cpu_ret, uptime_ret, daydate_ret, time_ret);
         setstatus(status);
         ++count;
         sleep(1);

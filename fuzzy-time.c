@@ -8,7 +8,10 @@ void fuzzytime() {
 	memset(time_ret, '\0', 25);
 	int hours = tm.tm_hour;
 	int minutes = tm.tm_min;	
-	
+
+	// Update day and date at midnight
+	if(hours == 0 && minutes == 0) get_day_date();
+
 	switch (minutes)
 	{
 		case 58: case 59:
@@ -92,8 +95,6 @@ void fuzzytime() {
 		case 12: case 0: case 24:
 			strcat(time_ret, "twelve ");
 			break;
-		default:
-			strcat(time_ret, "oops ");
 	}
 	switch (minutes)
 	{
