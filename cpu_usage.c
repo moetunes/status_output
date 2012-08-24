@@ -1,3 +1,7 @@
+/* Build with
+ * gcc cpu_usage.c -o cpu_usage
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -41,7 +45,7 @@ void get_cpu_perc() {
             if (strncmp(line, "cpu",3) == 0) {
                 sscanf(line, "%s\t%d\t%d\t%d\n", cpus[num].c, &cpus[num].i1, &cpus[num].i2, &cpus[num].i3);
                 t = (cpus[num].i1+cpus[num].i2+cpus[num].i3)-(cpus[num].i4+cpus[num].i5+cpus[num].i6);
-                sprintf(cpus[num].out, "%.1f%% ", (t / ((tf-ti) * 100)) * 100);
+                sprintf(cpus[num].out, "%.1f%% ", (t / (tf-ti)));
                 cpus[num].i4 = cpus[num].i1;
                 cpus[num].i5 = cpus[num].i2;
                 cpus[num].i6 = cpus[num].i3;

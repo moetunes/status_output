@@ -19,7 +19,7 @@ typedef struct {
     char out[6];
 } CPUS;
 
-#define OUT_TO_CONSOLE 1 // Zero to print in terminal, One to set root windows name
+#define OUT_TO_CONSOLE 0 // Zero to print in terminal, One to set root windows name
 #define WIFI "wlan0"
 #define CPUFILE "/proc/stat"
 #define FREQFILE "/proc/cpuinfo"
@@ -74,7 +74,7 @@ void get_cpu_perc() {
             if (strncmp(line, "cpu",3) == 0) {
                 sscanf(line, "%s\t%d\t%d\t%d\n", cpus[num].c, &cpus[num].i1, &cpus[num].i2, &cpus[num].i3);
                 t = (cpus[num].i1+cpus[num].i2+cpus[num].i3)-(cpus[num].i4+cpus[num].i5+cpus[num].i6);
-                sprintf(cpus[num].out, "%.0f%% ", (t / ((tf-ti) * 100)) * 100);
+                sprintf(cpus[num].out, "%.0f%% ", (t / (tf-ti)));
                 cpus[num].i4 = cpus[num].i1;
                 cpus[num].i5 = cpus[num].i2;
                 cpus[num].i6 = cpus[num].i3;

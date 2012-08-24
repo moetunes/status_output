@@ -1,3 +1,7 @@
+/* Build with
+ * gcc mem_usage.c -o mem_usage -lprocps
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
