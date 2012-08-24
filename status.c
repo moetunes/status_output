@@ -19,7 +19,7 @@ typedef struct {
     char out[6];
 } CPUS;
 
-#define OUT_TO_CONSOLE 0 // Zero to print in terminal, One to set root windows name
+#define OUT_TO_CONSOLE 1 // Zero to print in terminal, One to set root windows name
 #define WIFI "wlan0"
 #define CPUFILE "/proc/stat"
 #define FREQFILE "/proc/cpuinfo"
@@ -33,7 +33,7 @@ static void get_mem_mb();
 static void get_wifi_strength();
 static void get_batt_perc();
 static void get_temps();
-static void mktimes();
+static void get_day_date();
 
 static Display *dis;
 
@@ -44,6 +44,7 @@ static char wifi_ret[5];
 static char batt_ret[20];
 static char temps_ret[10];
 static char time_ret[25];
+static char daydate_ret[7];
 
 #include "fuzzy-time.c"
 
@@ -168,7 +169,7 @@ void get_batt_perc() {
         }
         fclose(Batt);
         perc = (nowcharge*100)/fullcharge;
-        sprintf(batt_ret, "%s &4%d%%", battstatus, perc);
+        sprintf(batt_ret, "%s &2%d%%", battstatus, perc);
     }
 
 }
@@ -193,25 +194,35 @@ void get_temps() {
     return;
 }
 
-void mktimes() {
+void get_day_date() {
     struct tm tm; 
     time_t    time_value = time(0);
     tm = *localtime(&time_value);
-    char secs[3]; char minutes[3]; char hours[3]; char arvo[3];
-    
-    if(tm.tm_hour >12) {
-        sprintf(hours, "%d", tm.tm_hour-12);
-        strncpy(arvo, "pm", 3);
-    } else {
-        sprintf(hours, "%d", tm.tm_hour);
-        strncpy(arvo, "am", 3);
+
+    switch(tm.tm_wday) {
+        case 0:
+            sprintf(daydate_ret, "Sun %d", tm.tm_mday);
+            break;
+        case 1:
+            sprintf(daydate_ret, "Mon %d", tm.tm_mday);
+            break;
+        case 2:
+            sprintf(daydate_ret, "Tue %d", tm.tm_mday);
+            break;
+        case 3:
+            sprintf(daydate_ret, "Wed %d", tm.tm_mday);
+            break;
+        case 4:
+            sprintf(daydate_ret, "Thu %d", tm.tm_mday);
+            break;
+        case 5:
+            sprintf(daydate_ret, "Fri %d", tm.tm_mday);
+            break;
+        case 6:
+            sprintf(daydate_ret, "Sat %d", tm.tm_mday);
+            break;
     }
-    if(tm.tm_min > 9) sprintf(minutes, "%d", tm.tm_min);
-    else sprintf(minutes, "0%d", tm.tm_min);
-    if(tm.tm_sec > 9) sprintf(secs, "%d", tm.tm_sec);
-    else sprintf(secs, "0%d", tm.tm_sec);
     
-    sprintf(time_ret, "%s:%s:%s %s", hours, minutes, secs, arvo);
     return;
 }
 
@@ -236,6 +247,7 @@ main(void) {
         return 1;
     }
 
+    get_day_date();
     while(1) {
         if(count == 0 || count == 30) {
             get_batt_perc();
@@ -251,8 +263,8 @@ main(void) {
         get_cpu_freq();
         //mktimes();
 
-        sprintf(status, "&C&8ð&7 %s&R &8¤&5 %s &B2&8±&7 %s &8Î&7 %s &8µ&5 %s&7 %s &B0&8É&5 %s &8ê ",
-             batt_ret, wifi_ret, temps_ret, mem_ret, freq_ret, cpu_ret, time_ret);
+        sprintf(status, "&4ð&1 %s &4¤&3 %s &4±&1 %s &4Î&1 %s &4µ&1 %s&2 %s &4É&5 %s &4Ï&5 %s &4ê ",
+             batt_ret, wifi_ret, temps_ret, mem_ret, freq_ret, cpu_ret, daydate_ret, time_ret);
         setstatus(status);
         ++count;
         sleep(1);
