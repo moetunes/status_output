@@ -1,3 +1,7 @@
+/* Build with
+ * gcc uptime.c -o uptime_info -lprocps
+ * /
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <proc/sysinfo.h>
