@@ -13,10 +13,10 @@ static void get_wifi_qual();
 
 void get_wifi_qual() {
     // wireless info variables
-    int skfd; // , has_bitrate = 0;
+    int skfd, has_bitrate = 0;
     struct wireless_info *winfo;
-    //struct iwreq wrq;
-    //char wi_bitrate[20];
+    struct iwreq wrq;
+    char wi_bitrate[10];
 
     winfo = (struct wireless_info *) malloc(sizeof(struct wireless_info));
     memset(winfo, 0, sizeof(struct wireless_info));
@@ -32,7 +32,7 @@ void get_wifi_qual() {
         if (iw_get_range_info(skfd, WIFI, &(winfo->range)) >= 0) {
             winfo->has_range = 1;
         }
-        /* if (iw_get_ext(skfd, WIFI, SIOCGIWAP, &wrq) >= 0) {
+        if (iw_get_ext(skfd, WIFI, SIOCGIWAP, &wrq) >= 0) {
             winfo->has_ap_addr = 1;
             memcpy(&(winfo->ap_addr), &(wrq.u.ap_addr), sizeof(sockaddr));
         }
@@ -43,16 +43,16 @@ void get_wifi_qual() {
             iw_print_bitrate(wi_bitrate, 16, winfo->bitrate.value);
             has_bitrate = 1;
             printf("\rBitrate = %s ", wi_bitrate);
-        } */
+        }
 
         // get link quality
         //if (winfo->has_range && winfo->has_stats
         //       && ((winfo->stats.qual.level != 0)
         //       || (winfo->stats.qual.updated & IW_QUAL_DBM))) {
         //    if (!(winfo->stats.qual.updated & IW_QUAL_QUAL_INVALID)) {
-                printf("\rlink_qual = %d ",winfo->stats.qual.qual);
-                printf("link_qual_max = %d ",winfo->range.max_qual.qual);
-                printf("link_qual_percent = %d%%",
+                printf("qual = %d ",winfo->stats.qual.qual);
+                printf("qual_max = %d ",winfo->range.max_qual.qual);
+                printf("qual_percent = %d%%",
                     (winfo->stats.qual.qual*100)/winfo->range.max_qual.qual);
         //    }
         //}

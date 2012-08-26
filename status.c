@@ -41,7 +41,7 @@ static Display *dis;
 static char cpu_ret[25];
 static char freq_ret[5];
 static char mem_ret[10];
-static char wifi_ret[5];
+static char wifi_ret[15];
 static char batt_ret[20];
 static char temps_ret[10];
 static char time_ret[25];
@@ -88,8 +88,7 @@ void get_cpu_perc() {
 	fclose(f1);
 
 	ti = tf;
-	t = (num > 1) ? 1 : 0;
-    for(t;t<num;++t)
+    for(t=(num>1)?1:0;t<num;++t)
         strcat(cpu_ret, cpus[t].out);
 
 	return;
@@ -117,7 +116,7 @@ void get_cpu_freq() {
 
 void get_mem_mb() {
     meminfo();
-    sprintf(mem_ret, "%dMiB",
+    sprintf(mem_ret, "%luMiB",
      (kb_main_total-kb_main_free-kb_main_cached-kb_main_buffers)/1024);
     return;
 }
@@ -125,6 +124,8 @@ void get_mem_mb() {
 void get_wifi_strength() {
     int skfd;
     struct wireless_info *winfo;
+    struct iwreq wrq;
+    char wi_bitrate[10];
 
     winfo = (struct wireless_info *) malloc(sizeof(struct wireless_info));
     memset(winfo, 0, sizeof(struct wireless_info));
@@ -138,8 +139,11 @@ void get_wifi_strength() {
         if (iw_get_range_info(skfd, WIFI, &(winfo->range)) >= 0) {
             winfo->has_range = 1;
         }
-        sprintf(wifi_ret, "%d%%",
-            (winfo->stats.qual.qual*100)/winfo->range.max_qual.qual);
+        if (iw_get_ext(skfd, WIFI, SIOCGIWRATE, &wrq) >= 0) {
+            memcpy(&(winfo->bitrate), &(wrq.u.bitrate), sizeof(iwparam));
+            iw_print_bitrate(wi_bitrate, 16, winfo->bitrate.value);
+        }
+        sprintf(wifi_ret, "%s %d%%", wi_bitrate, (winfo->stats.qual.qual*100)/winfo->range.max_qual.qual);
     }
     iw_sockets_close(skfd);
     free(winfo);
@@ -160,7 +164,8 @@ void get_batt_perc() {
     } else {
         while(fgets(buffer,sizeof buffer,Batt) != NULL) {
             if(strstr(buffer,"POWER_SUPPLY_STATUS=") != NULL) {
-                battstatus = strndup(strstr(buffer, "=")+1, strlen(strstr(buffer, "=")+1)-1);
+                battstatus = strdup(strstr(buffer, "=")+1);
+                battstatus[strlen(battstatus)-1] = '\0';
             } else if(strstr(buffer,"POWER_SUPPLY_CHARGE_FULL=") != NULL) {
                 lastfull = strstr(buffer, "=");
                 fullcharge = atoi(lastfull+1);
