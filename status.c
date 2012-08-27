@@ -39,11 +39,11 @@ static void get_uptime();
 static Display *dis;
 
 static char cpu_ret[25];
-static char freq_ret[5];
-static char mem_ret[10];
+static double freq_ret;
+static unsigned long mem_ret;
 static char wifi_ret[15];
 static char batt_ret[20];
-static char temps_ret[10];
+static char temps_ret[15];
 static char time_ret[25];
 static char daydate_ret[7];
 static char uptime_ret[15];
@@ -52,6 +52,7 @@ static char uptime_ret[15];
 
 static double ti;
 
+// Make sure this value is at least the number of cpus
 static CPUS cpus[4];
 
 double time_so_far() {
@@ -96,28 +97,24 @@ void get_cpu_perc() {
 
 void get_cpu_freq() {
     FILE *f1;
-	double freq;
 
-    memset(freq_ret, '\0', 5);
 	f1 = fopen(FREQFILE, "rb");
     if (f1 != NULL) {
         char line[100];
         while(fgets(line, sizeof line, f1) != NULL) {
             if (strncmp(line, "cpu MHz", 7) == 0) {
-                freq = atoi(strchr(line, ':') + 2);
+                freq_ret = (float)(atoi(strchr(line, ':') + 2))/1000;
                 break;
             }
         }
-    } else puts("Wrong file");
+    } else fputs("::INFO:: \033[0;31mCouldn't Find CPUFILE\033[0m", stderr);
     fclose(f1);
-    sprintf(freq_ret, "%.2f", (freq/1000));
     return;
 }
 
 void get_mem_mb() {
     meminfo();
-    sprintf(mem_ret, "%luMiB",
-     (kb_main_total-kb_main_free-kb_main_cached-kb_main_buffers)/1024);
+    mem_ret = (kb_main_total-kb_main_free-kb_main_cached-kb_main_buffers)/1024;
     return;
 }
 
@@ -125,25 +122,23 @@ void get_wifi_strength() {
     int skfd;
     struct wireless_info *winfo;
     struct iwreq wrq;
-    char wi_bitrate[10];
 
     winfo = (struct wireless_info *) malloc(sizeof(struct wireless_info));
     memset(winfo, 0, sizeof(struct wireless_info));
 
     skfd = iw_sockets_open();
     if (iw_get_basic_config(skfd, WIFI, &(winfo->b)) > -1) {
+        if (iw_get_range_info(skfd, WIFI, &(winfo->range)) >= 0) {
+            winfo->has_range = 1;
+        }
         if (iw_get_stats(skfd, WIFI, &(winfo->stats),
                 &winfo->range, winfo->has_range) >= 0) {
             winfo->has_stats = 1;
         }
-        if (iw_get_range_info(skfd, WIFI, &(winfo->range)) >= 0) {
-            winfo->has_range = 1;
-        }
         if (iw_get_ext(skfd, WIFI, SIOCGIWRATE, &wrq) >= 0) {
-            memcpy(&(winfo->bitrate), &(wrq.u.bitrate), sizeof(iwparam));
-            iw_print_bitrate(wi_bitrate, 16, winfo->bitrate.value);
+            sprintf(wifi_ret, "%dMb/s %d%%", wrq.u.bitrate.value/1000000,
+             (winfo->stats.qual.qual*100)/winfo->range.max_qual.qual);
         }
-        sprintf(wifi_ret, "%s %d%%", wi_bitrate, (winfo->stats.qual.qual*100)/winfo->range.max_qual.qual);
     }
     iw_sockets_close(skfd);
     free(winfo);
@@ -154,12 +149,13 @@ void get_batt_perc() {
     FILE *Batt;
     char  buffer[80];
     char *battstatus, *chargenow, *lastfull;
-    unsigned int perc;
+    unsigned int perc, c1;
     long nowcharge, fullcharge;
 
     Batt = fopen( BATTFILE, "rb" ) ;
     if ( Batt == NULL ) {
-        fprintf(stderr, "\t\033[0;31mCouldn't find %s\033[0m \n", BATTFILE);
+        fprintf(stderr, "::INFO:: \033[0;31mCouldn't find %s\033[0m \n", BATTFILE);
+        sprintf(batt_ret, "FILE FAIL");
         return;
     } else {
         while(fgets(buffer,sizeof buffer,Batt) != NULL) {
@@ -176,28 +172,31 @@ void get_batt_perc() {
         }
         fclose(Batt);
         perc = (nowcharge*100)/fullcharge;
-        sprintf(batt_ret, "%s &2%d%%", battstatus, perc);
+        c1 = (perc > 90) ? 5 : (perc > 30) ? 2 : 6;
+        sprintf(batt_ret, "%s &%d%d%%", battstatus, c1, perc);
     }
 
 }
 
 void get_temps() {
-    int  temp1 = 0, temp2 = 0;
+    unsigned int  temp1 = 0, temp2 = 0, c1, c2;
 
-    memset(temps_ret, '\0', 10);
+    memset(temps_ret, '\0', 15);
     FILE* file1 = fopen(TEMPFILE1, "rb");
     if(file1 != NULL)
-        fscanf(file1, "%d", &temp1);
+        fscanf(file1, "%u", &temp1);
     fclose(file1);
 
     FILE* file2 = fopen(TEMPFILE2, "rb");
     if(file2 != NULL)
-        fscanf(file2, "%d", &temp2);
+        fscanf(file2, "%u", &temp2);
     fclose(file2);
 
-    if(temp1 > 0 && temp2 > 0)
-        sprintf(temps_ret, "%d° %d°", temp1/1000, temp2/1000);
-    else sprintf(temps_ret, "?????");
+    if(temp1 > 0 && temp2 > 0) {
+        c1 = (temp1 > 49000) ? 6 : 5;
+        c2 = (temp2 > 49000) ? 6 : 5;
+        sprintf(temps_ret, "&%d%d° &%d%d°", c1, temp1/1000, c2, temp2/1000);
+    } else sprintf(temps_ret, "?????");
     return;
 }
 
@@ -269,23 +268,23 @@ main(void) {
     }
 
     get_day_date();
+    get_wifi_strength();
+    get_batt_perc();
+    get_temps();
+    fuzzytime();
     while(1) {
-        if(count == 0 || count == 30) {
+        if(count == 30) {
             get_batt_perc();
             count = 0;
-        }
-        if(count == 0 || count == 15) {
-            get_temps();
-            fuzzytime();
-        }
+        } else if(count == 2 || count == 17) get_temps();
+        else if(count == 4 || count == 19) fuzzytime();
         if((count%2) == 0) get_mem_mb();
         else get_wifi_strength();
         get_cpu_perc();
         get_cpu_freq();
         get_uptime();
-        //mktimes();
 
-        sprintf(status, "&4ð&1 %s &4¤&3 %s &4±&1 %s &4Î&1 %s &4µ&1 %s&2 %s &4µ&1 %s &4É&5 %s &4Ï&5 %s &4ê ",
+        sprintf(status, "&4ð&1 %s &4¤&3 %s &4± %s &4Î&1 %luMiB &4µ&1 %.2f&2 %s &4µ&1 %s &4É&5 %s &4Ï&5 %s &4ê ",
              batt_ret, wifi_ret, temps_ret, mem_ret, freq_ret, cpu_ret, uptime_ret, daydate_ret, time_ret);
         setstatus(status);
         ++count;
