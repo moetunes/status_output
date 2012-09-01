@@ -12,6 +12,10 @@
 #include <iwlib.h>
 #include <proc/sysinfo.h>
 
+#include <net/if.h>
+#include <netinet/in.h>
+#include <ifaddrs.h>
+
 typedef struct {
     char c[5];
     int i1,i2,i3;
@@ -19,10 +23,15 @@ typedef struct {
     char out[6];
 } CPUS;
 
+struct net_speed {
+    unsigned int recv;
+};
+
 #define OUT_TO_CONSOLE 1 // Zero to print in terminal, One to set root windows name
 #define WIFI "wlan0"
 #define CPUFILE "/proc/stat"
 #define FREQFILE "/proc/cpuinfo"
+#define NETSPEEDFILE "/proc/net/dev"
 #define BATTFILE "/sys/class/power_supply/BAT0/uevent"
 #define TEMPFILE1 "/sys/bus/platform/devices/coretemp.0/temp2_input"
 #define TEMPFILE2 "/sys/bus/platform/devices/coretemp.0/temp4_input"
@@ -30,6 +39,7 @@ typedef struct {
 static void get_cpu_perc();
 static void get_cpu_freq();
 static void get_mem_mb();
+static void update_speed();
 static void get_wifi_strength();
 static void get_batt_perc();
 static void get_temps();
@@ -41,6 +51,7 @@ static Display *dis;
 static char cpu_ret[25];
 static double freq_ret;
 static unsigned long mem_ret;
+static char speed_ret[50];
 static char wifi_ret[15];
 static char batt_ret[20];
 static char temps_ret[15];
@@ -50,7 +61,8 @@ static char uptime_ret[15];
 
 #include "fuzzy-time.c"
 
-static double ti;
+static double ti, tj;
+static struct net_speed ns[2];
 
 // Make sure this value is at least the number of cpus
 static CPUS cpus[4];
@@ -118,10 +130,65 @@ void get_mem_mb() {
     return;
 }
 
+void update_speed() {
+	FILE *f1;
+    char line[256];
+
+    f1 = fopen(NETSPEEDFILE, "rb");
+    if (f1 != NULL) {
+        while(fgets(line, sizeof line, f1) != NULL) {
+            if (strncmp(line, " wlan0", 6) == 0)
+                break;
+        }
+    } else {
+        sprintf(speed_ret, "NET FAIL F");
+        return;
+    }
+    fclose(f1);
+
+	char *vals;
+	unsigned int last_recv;
+	int down;
+	double delta, down_speed, current;
+
+	/* get delta */
+	current = time_so_far();
+	delta = current - tj;
+	if (delta <= 0.0001) {
+		sprintf(speed_ret, "NET FAIL T");
+		return;
+	}
+    tj = current;
+
+	vals = strchr(line, ':');
+	++vals;
+
+	last_recv = ns->recv;
+
+	/* bytes packets errs drop fifo frame compressed multicast|bytes ... */
+	sscanf(vals, "%d %*d %*d %*d %*d %*d %*d %*d %*d",
+		&down);
+
+	/* if recv is less than last time, an overflow happened */
+	if (down < last_recv) last_recv = 0;
+	else ns->recv = down;
+
+	/* calculate speeds */
+	down_speed = (ns->recv - last_recv) / delta;
+	if(down_speed > 1000000.0)
+	    sprintf(speed_ret, "%.2f MB/s", down_speed/1000000.0);
+	else if(down_speed > 1000)
+	    sprintf(speed_ret, " %.1f KB/s", down_speed/1000.0);
+    else
+        sprintf(speed_ret, " %.0f B/s", down_speed);
+
+    return;
+}
+
 void get_wifi_strength() {
     int skfd;
     struct wireless_info *winfo;
-    struct iwreq wrq;
+    //struct iwreq wrq;
 
     winfo = (struct wireless_info *) malloc(sizeof(struct wireless_info));
     memset(winfo, 0, sizeof(struct wireless_info));
@@ -135,10 +202,11 @@ void get_wifi_strength() {
                 &winfo->range, winfo->has_range) >= 0) {
             winfo->has_stats = 1;
         }
-        if (iw_get_ext(skfd, WIFI, SIOCGIWRATE, &wrq) >= 0) {
+        sprintf(wifi_ret, "%d%%", (winfo->stats.qual.qual*100)/winfo->range.max_qual.qual);
+        /* if (iw_get_ext(skfd, WIFI, SIOCGIWRATE, &wrq) >= 0) {
             sprintf(wifi_ret, "%dMb/s %d%%", wrq.u.bitrate.value/1000000,
              (winfo->stats.qual.qual*100)/winfo->range.max_qual.qual);
-        }
+        } */
     }
     iw_sockets_close(skfd);
     free(winfo);
@@ -282,10 +350,11 @@ main(void) {
         else get_wifi_strength();
         get_cpu_perc();
         get_cpu_freq();
+        update_speed();
         get_uptime();
 
-        sprintf(status, "&4ð&1 %s &4¤&3 %s &4± %s &4Î&1 %luMiB &4µ&1 %.2f&2 %s &4µ&1 %s &4É&5 %s &4Ï&5 %s &4ê ",
-             batt_ret, wifi_ret, temps_ret, mem_ret, freq_ret, cpu_ret, uptime_ret, daydate_ret, time_ret);
+        sprintf(status, "&4¤&3 %s %s &4ð&1 %s &4± %s &4Î&1 %luMiB &4µ&1 %.2f&2 %s &4µ&1 %s &4É&5 %s &4Ï&5 %s &4ê ",
+             speed_ret, wifi_ret, batt_ret, temps_ret, mem_ret, freq_ret, cpu_ret, uptime_ret, daydate_ret, time_ret);
         setstatus(status);
         ++count;
         sleep(1);

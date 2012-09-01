@@ -17,8 +17,8 @@ ${EXEC}: ${OBJ}
 	$(CC) $(LDFLAGS) -s -O2 -ffast-math -fno-unit-at-a-time -o $@ ${OBJ} $(LDADD)
 
 install: all
-	install -Dm 755 snap_output $(DESTDIR)$(BINDIR)/snap_output
+	install -Dm 755 snap_output $(DESTDIR)$(BINDIR)/$(EXEC)
 
 clean:
-	rm -fv snap_output *.o
+	rm -fv $(EXEC) *.o
 
