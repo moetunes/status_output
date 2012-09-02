@@ -23,10 +23,6 @@ typedef struct {
     char out[6];
 } CPUS;
 
-struct net_speed {
-    unsigned int recv;
-};
-
 #define OUT_TO_CONSOLE 1 // Zero to print in terminal, One to set root windows name
 #define WIFI "wlan0"
 #define CPUFILE "/proc/stat"
@@ -58,11 +54,9 @@ static char temps_ret[15];
 static char time_ret[25];
 static char daydate_ret[7];
 static char uptime_ret[15];
-
-#include "fuzzy-time.c"
-
 static double ti, tj;
-static struct net_speed ns[2];
+static unsigned int recd;
+#include "fuzzy-time.c"
 
 // Make sure this value is at least the number of cpus
 static CPUS cpus[4];
@@ -163,7 +157,7 @@ void update_speed() {
 	vals = strchr(line, ':');
 	++vals;
 
-	last_recv = ns->recv;
+	last_recv = recd;
 
 	/* bytes packets errs drop fifo frame compressed multicast|bytes ... */
 	sscanf(vals, "%d %*d %*d %*d %*d %*d %*d %*d %*d",
@@ -171,10 +165,10 @@ void update_speed() {
 
 	/* if recv is less than last time, an overflow happened */
 	if (down < last_recv) last_recv = 0;
-	else ns->recv = down;
+	else recd = down;
 
 	/* calculate speeds */
-	down_speed = (ns->recv - last_recv) / delta;
+	down_speed = (recd - last_recv) / delta;
 	if(down_speed > 1000000.0)
 	    sprintf(speed_ret, "%.2f MB/s", down_speed/1000000.0);
 	else if(down_speed > 1000)
