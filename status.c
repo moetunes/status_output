@@ -47,7 +47,7 @@ static Display *dis;
 static char cpu_ret[25];
 static double freq_ret;
 static unsigned long mem_ret;
-static char speed_ret[50];
+static char speed_ret[12];
 static char wifi_ret[15];
 static char batt_ret[20];
 static char temps_ret[15];
@@ -77,7 +77,7 @@ void get_cpu_perc() {
 
     memset(cpu_ret, '\0', 25);
 	tf = time_so_far();
-	f1 = fopen(CPUFILE, "rb");
+	f1 = fopen(CPUFILE, "r");
     if (f1 != NULL) {
         char line[100];
         while(fgets(line, sizeof line, f1) != NULL) {
@@ -104,7 +104,7 @@ void get_cpu_perc() {
 void get_cpu_freq() {
     FILE *f1;
 
-	f1 = fopen(FREQFILE, "rb");
+	f1 = fopen(FREQFILE, "r");
     if (f1 != NULL) {
         char line[100];
         while(fgets(line, sizeof line, f1) != NULL) {
@@ -127,11 +127,14 @@ void get_mem_mb() {
 void update_speed() {
 	FILE *f1;
     char line[256];
+	char *vals;
 
-    f1 = fopen(NETSPEEDFILE, "rb");
+    f1 = fopen(NETSPEEDFILE, "r");
     if (f1 != NULL) {
         while(fgets(line, sizeof line, f1) != NULL) {
             if (strncmp(line, " wlan0", 6) == 0)
+                vals = strchr(line, ':');
+                ++vals;
                 break;
         }
     } else {
@@ -140,7 +143,6 @@ void update_speed() {
     }
     fclose(f1);
 
-	char *vals;
 	unsigned int last_recv;
 	int down;
 	double delta, down_speed, current;
@@ -154,9 +156,6 @@ void update_speed() {
 	}
     tj = current;
 
-	vals = strchr(line, ':');
-	++vals;
-
 	last_recv = recd;
 
 	/* bytes packets errs drop fifo frame compressed multicast|bytes ... */
@@ -168,13 +167,13 @@ void update_speed() {
 	else recd = down;
 
 	/* calculate speeds */
-	down_speed = (recd - last_recv) / delta;
+	down_speed = ((recd - last_recv) / delta)*8;
 	if(down_speed > 1000000.0)
-	    sprintf(speed_ret, "%.2f MB/s", down_speed/1000000.0);
+	    sprintf(speed_ret, "%.2f Mb/s", down_speed/1000000.0);
 	else if(down_speed > 1000)
-	    sprintf(speed_ret, " %.1f KB/s", down_speed/1000.0);
+	    sprintf(speed_ret, " %.1f Kb/s", down_speed/1000.0);
     else
-        sprintf(speed_ret, " %.0f B/s", down_speed);
+        sprintf(speed_ret, " %.0f b/s", down_speed);
 
     return;
 }
@@ -214,7 +213,7 @@ void get_batt_perc() {
     unsigned int perc, c1;
     long nowcharge, fullcharge;
 
-    Batt = fopen( BATTFILE, "rb" ) ;
+    Batt = fopen( BATTFILE, "r" ) ;
     if ( Batt == NULL ) {
         fprintf(stderr, "::INFO:: \033[0;31mCouldn't find %s\033[0m \n", BATTFILE);
         sprintf(batt_ret, "FILE FAIL");
@@ -244,7 +243,7 @@ void get_temps() {
     unsigned int  temp1 = 0, temp2 = 0, c1, c2;
 
     memset(temps_ret, '\0', 15);
-    FILE* file1 = fopen(TEMPFILE1, "rb");
+    FILE* file1 = fopen(TEMPFILE1, "r");
     if(file1 != NULL)
         fscanf(file1, "%u", &temp1);
     fclose(file1);

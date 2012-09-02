@@ -138,14 +138,14 @@ void update_speed2() {
     }
 
     /* calculate speeds */
-    down_speed = (recd - last_recd) / delta;
+    down_speed = ((recd - last_recd)/delta)*8;
     //printf("DOWN= %d, lr= %d, nsr= %d\n", down, last_recd, recd);
     if(down_speed > 1000000.0)
-        sprintf(speed_ret, "%.2f MB/s", down_speed/1000000.0);
+        sprintf(speed_ret, "%.2f Mb/s", down_speed/1000000.0);
     else if(down_speed > 1000)
-        sprintf(speed_ret, " %.1f KB/s", down_speed/1000.0);
+        sprintf(speed_ret, " %.1f Kb/s", down_speed/1000.0);
     else
-        sprintf(speed_ret, " %.0f B/s", down_speed);
+        sprintf(speed_ret, " %.0f b/s", down_speed);
 
     return;
 }
