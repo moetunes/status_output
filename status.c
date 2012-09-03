@@ -132,10 +132,11 @@ void update_speed() {
     f1 = fopen(NETSPEEDFILE, "r");
     if (f1 != NULL) {
         while(fgets(line, sizeof line, f1) != NULL) {
-            if (strncmp(line, " wlan0", 6) == 0)
+            if (strncmp(line, " wlan0", 6) == 0) {
                 vals = strchr(line, ':');
                 ++vals;
                 break;
+            }
         }
     } else {
         sprintf(speed_ret, "NET FAIL F");

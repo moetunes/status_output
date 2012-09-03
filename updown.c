@@ -29,12 +29,16 @@ double time_so_far() {
 void update_speed() {
     FILE *f1;
     char line[256];
+    char *vals;
 
     f1 = fopen(NETSPEEDFILE, "r");
     if (f1 != NULL) {
         while(fgets(line, sizeof line, f1) != NULL) {
-            if (strncmp(line, " wlan0", 6) == 0)
+            if (strncmp(line, " wlan0", 6) == 0) {
+                vals = strchr(line, ':');
+                ++vals;
                 break;
+            }
         }
     } else {
         sprintf(speed_ret, "NET FAIL F");
@@ -42,7 +46,6 @@ void update_speed() {
     }
     fclose(f1);
 
-    char *vals;
     unsigned int last_recd, last_trans;
     unsigned int down, up;
     double delta, down_speed, up_speed, current;
@@ -55,9 +58,6 @@ void update_speed() {
         return;
     }
     tj = current;
-
-    vals = strchr(line, ':');
-    ++vals;
 
     last_recd = recd;
     //last_trans = sent;
@@ -93,13 +93,17 @@ void update_speed() {
 void update_speed2() {
     FILE *f1;
     char line[256];
+    char *vals;
 
     f1 = fopen(NETSPEEDFILE, "rb");
     if (f1 != NULL) {
         while(fgets(line, sizeof line, f1) != NULL) {
             // check NETSPEEDFILE for spaces before eth0/wlan0
-            if (strncmp(line, " wlan0", 6) == 0)
+            if (strncmp(line, " wlan0", 6) == 0) {
+                vals = strchr(line, ':');
+                ++vals;
                 break;
+            }
         }
     } else {
         sprintf(speed_ret, "NET FAIL F");
@@ -107,7 +111,6 @@ void update_speed2() {
     }
     fclose(f1);
 
-    char *vals;
     unsigned int last_recd;
     int down;
     double delta, down_speed, current;
@@ -120,9 +123,6 @@ void update_speed2() {
         return;
     }
     tj = current;
-
-    vals = strchr(line, ':');
-    ++vals;
 
     last_recd = recd;
 
