@@ -15,7 +15,7 @@ static void update_speed2();
 
 static char speed_ret[50];
 static double tj;
-static unsigned int recd, sent;
+static long long recd, sent;
 
 double time_so_far() {
    struct timeval tp;
@@ -46,8 +46,8 @@ void update_speed() {
     }
     fclose(f1);
 
-    unsigned int last_recd, last_trans;
-    unsigned int down, up;
+    long long last_recd, last_trans;
+    long long down, up;
     double delta, down_speed, up_speed, current;
 
     /* get delta */
@@ -63,7 +63,7 @@ void update_speed() {
     //last_trans = sent;
 
     /* bytes packets errs drop fifo frame compressed multicast|bytes ... */
-    sscanf(vals, "%d %*d %*d %*d %*d %*d %*d %*d %d",
+    sscanf(vals, "%lld %*d %*d %*d %*d %*d %*d %*d %lld",
         &down, &up);
 
     /* if recd or trans is less than last time, an overflow happened */
@@ -111,8 +111,7 @@ void update_speed2() {
     }
     fclose(f1);
 
-    unsigned int last_recd;
-    int down;
+    long long last_recd, down;
     double delta, down_speed, current;
 
     /* get delta */
@@ -127,7 +126,7 @@ void update_speed2() {
     last_recd = recd;
 
     /* bytes packets errs drop fifo frame compressed multicast|bytes ... */
-    sscanf(vals, "%d %*d %*d %*d %*d %*d %*d %*d %*d",
+    sscanf(vals, "%lld %*d %*d %*d %*d %*d %*d %*d %*d",
         &down);
 
     /* if recd is less than last time, an overflow happened */

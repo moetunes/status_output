@@ -55,7 +55,8 @@ static char time_ret[25];
 static char daydate_ret[7];
 static char uptime_ret[15];
 static double ti, tj;
-static unsigned int recd;
+static long long recd;
+
 #include "fuzzy-time.c"
 
 // Make sure this value is at least the number of cpus
@@ -144,8 +145,8 @@ void update_speed() {
     }
     fclose(f1);
 
-	unsigned int last_recv;
-	int down;
+	long long last_recv;
+	long long down;
 	double delta, down_speed, current;
 
 	/* get delta */
@@ -160,7 +161,7 @@ void update_speed() {
 	last_recv = recd;
 
 	/* bytes packets errs drop fifo frame compressed multicast|bytes ... */
-	sscanf(vals, "%d %*d %*d %*d %*d %*d %*d %*d %*d",
+	sscanf(vals, "%lld %*d %*d %*d %*d %*d %*d %*d %*d",
 		&down);
 
 	/* if recv is less than last time, an overflow happened */
