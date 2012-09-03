@@ -63,7 +63,7 @@ void update_speed() {
     //last_trans = sent;
 
     /* bytes packets errs drop fifo frame compressed multicast|bytes ... */
-    sscanf(vals, "%lld ",
+    sscanf(vals, "%lld %*d %*d %*d %*d %*d %*d %*d %lld",
         &down, &up);
 
     /* if recd or trans is less than last time, an overflow happened */
