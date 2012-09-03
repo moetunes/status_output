@@ -161,7 +161,7 @@ void update_speed() {
 	last_recv = recd;
 
 	/* bytes packets errs drop fifo frame compressed multicast|bytes ... */
-	sscanf(vals, "%lld %*d %*d %*d %*d %*d %*d %*d %*d",
+	sscanf(vals, "%lld ",
 		&down);
 
 	/* if recv is less than last time, an overflow happened */

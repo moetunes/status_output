@@ -63,7 +63,7 @@ void update_speed() {
     //last_trans = sent;
 
     /* bytes packets errs drop fifo frame compressed multicast|bytes ... */
-    sscanf(vals, "%lld %*d %*d %*d %*d %*d %*d %*d %lld",
+    sscanf(vals, "%lld ",
         &down, &up);
 
     /* if recd or trans is less than last time, an overflow happened */
@@ -126,7 +126,7 @@ void update_speed2() {
     last_recd = recd;
 
     /* bytes packets errs drop fifo frame compressed multicast|bytes ... */
-    sscanf(vals, "%lld %*d %*d %*d %*d %*d %*d %*d %*d",
+    sscanf(vals, "%lld ",
         &down);
 
     /* if recd is less than last time, an overflow happened */
@@ -152,7 +152,7 @@ void update_speed2() {
 int main() {
     while (1) {
         update_speed2();
-        printf("            \r** %s", speed_ret);
+        printf("\r** %s       ", speed_ret);
         fflush(stdout);
         sleep(1);
     }
