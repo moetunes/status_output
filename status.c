@@ -48,7 +48,7 @@ static char cpu_ret[25];
 static double freq_ret;
 static unsigned long mem_ret;
 static char speed_ret[12];
-static char wifi_ret[15];
+static unsigned int wifi_ret;
 static char batt_ret[20];
 static char temps_ret[15];
 static char time_ret[25];
@@ -129,11 +129,13 @@ void update_speed() {
 	FILE *f1;
     char line[256];
 	char *vals;
+	char WIFI1[6] = "";
+	sprintf(WIFI1, " %s", WIFI);
 
     f1 = fopen(NETSPEEDFILE, "r");
     if (f1 != NULL) {
         while(fgets(line, sizeof line, f1) != NULL) {
-            if (strncmp(line, " wlan0", 6) == 0) {
+            if (strncmp(line, WIFI1, 6) == 0) {
                 vals = strchr(line, ':');
                 ++vals;
                 break;
@@ -161,21 +163,21 @@ void update_speed() {
 	last_recv = recd;
 
 	/* bytes packets errs drop fifo frame compressed multicast|bytes ... */
-	sscanf(vals, "%lld ",
-		&down);
+	sscanf(vals, "%lld ",&down);
 
 	/* if recv is less than last time, an overflow happened */
-	if (down < last_recv) last_recv = 0;
-	else recd = down;
+	//if (down < last_recv) last_recv = 0;
+	//else recd = down;
+	recd = down;
 
 	/* calculate speeds */
-	down_speed = ((recd - last_recv) / delta)*8;
-	if(down_speed > 1000000.0)
-	    sprintf(speed_ret, "%.2f Mb/s", down_speed/1000000.0);
-	else if(down_speed > 1000)
-	    sprintf(speed_ret, " %.1f Kb/s", down_speed/1000.0);
+	down_speed = ((recd - last_recv) / delta);
+	if(down_speed > 1048576.0)
+	    sprintf(speed_ret, "%.2f MB/s", down_speed/1048576.0);
+	else if(down_speed > 1024)
+	    sprintf(speed_ret, " %.1f KB/s", down_speed/1024.0);
     else
-        sprintf(speed_ret, " %.0f b/s", down_speed);
+        sprintf(speed_ret, " %.0f B/s", down_speed);
 
     return;
 }
@@ -197,7 +199,7 @@ void get_wifi_strength() {
                 &winfo->range, winfo->has_range) >= 0) {
             winfo->has_stats = 1;
         }
-        sprintf(wifi_ret, "%d%%", (winfo->stats.qual.qual*100)/winfo->range.max_qual.qual);
+        wifi_ret = (winfo->stats.qual.qual*100)/winfo->range.max_qual.qual;
         /* if (iw_get_ext(skfd, WIFI, SIOCGIWRATE, &wrq) >= 0) {
             sprintf(wifi_ret, "%dMb/s %d%%", wrq.u.bitrate.value/1000000,
              (winfo->stats.qual.qual*100)/winfo->range.max_qual.qual);
@@ -235,7 +237,7 @@ void get_batt_perc() {
         }
         fclose(Batt);
         perc = (nowcharge*100)/fullcharge;
-        c1 = (perc > 90) ? 5 : (perc > 30) ? 2 : 6;
+        c1 = (perc > 90) ? 6 : (perc > 30) ? 3 : 7;
         sprintf(batt_ret, "%s &%d%d%%", battstatus, c1, perc);
     }
 
@@ -256,8 +258,8 @@ void get_temps() {
     fclose(file2);
 
     if(temp1 > 0 && temp2 > 0) {
-        c1 = (temp1 > 49000) ? 6 : 5;
-        c2 = (temp2 > 49000) ? 6 : 5;
+        c1 = (temp1 > 49000) ? 7 : 6;
+        c2 = (temp2 > 49000) ? 7 : 6;
         sprintf(temps_ret, "&%d%d° &%d%d°", c1, temp1/1000, c2, temp2/1000);
     } else sprintf(temps_ret, "?????");
     return;
@@ -320,8 +322,7 @@ setstatus(char *str) {
     }
 }
 
-int
-main(void) {
+int main(void) {
     char status[256];
     unsigned int count = 0;
 
@@ -348,7 +349,7 @@ main(void) {
         update_speed();
         get_uptime();
 
-        sprintf(status, "&4¤&3 %s %s &4ð&1 %s &4± %s &4Î&1 %luMiB &4µ&1 %.2f&2 %s &4µ&1 %s &4É&5 %s &4Ï&5 %s &4ê ",
+        sprintf(status, "&5¤&3 %s %d%% &5ð&3 %s &5± %s &5Î&3 %luMiB &5µ&2 %.2f&3 %s &5µ&3 %s &5É&6 %s &5Ï&6 %s &5ê ",
              speed_ret, wifi_ret, batt_ret, temps_ret, mem_ret, freq_ret, cpu_ret, uptime_ret, daydate_ret, time_ret);
         setstatus(status);
         ++count;
