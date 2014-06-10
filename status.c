@@ -29,8 +29,8 @@ typedef struct {
 #define FREQFILE "/proc/cpuinfo"
 #define NETSPEEDFILE "/proc/net/dev"
 #define BATTFILE "/sys/class/power_supply/BAT0/uevent"
-#define TEMPFILE1 "/sys/bus/platform/devices/coretemp.0/temp2_input"
-#define TEMPFILE2 "/sys/bus/platform/devices/coretemp.0/temp4_input"
+#define TEMPFILE1 "/sys/bus/platform/devices/coretemp.0/hwmon/hwmon0/temp2_input"
+#define TEMPFILE2 "/sys/bus/platform/devices/coretemp.0/hwmon/hwmon0/temp4_input"
 
 static void get_cpu_perc();
 static void get_cpu_freq();
@@ -248,14 +248,16 @@ void get_temps() {
 
     memset(temps_ret, '\0', 15);
     FILE* file1 = fopen(TEMPFILE1, "r");
-    if(file1 != NULL)
+    if(file1 != NULL) {
         fscanf(file1, "%u", &temp1);
-    fclose(file1);
+        fclose(file1);
+    }
 
     FILE* file2 = fopen(TEMPFILE2, "rb");
-    if(file2 != NULL)
+    if(file2 != NULL) {
         fscanf(file2, "%u", &temp2);
-    fclose(file2);
+        fclose(file2);
+    }
 
     if(temp1 > 0 && temp2 > 0) {
         c1 = (temp1 > 49000) ? 7 : 6;
